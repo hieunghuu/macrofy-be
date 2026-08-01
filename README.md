@@ -1,8 +1,22 @@
 # Food Coach -- backend
 
-A FastAPI backend for Food Coach: calculates TDEE and calorie targets from
-body stats + goals, and generates meal plans from a curated meal catalog.
-All config is env-driven -- nothing environment-specific is hardcoded.
+One of three repos: `food-coach-backend` (this one), `food-coach-frontend`,
+and `food-coach-ai`. This repo is a self-contained FastAPI service --
+calculates TDEE and calorie targets from body stats + goals, and generates
+meal plans from a curated meal catalog. All config is env-driven -- nothing
+environment-specific is hardcoded.
+
+## Architecture: modular monolith, not microservices (for now)
+
+Backend, frontend, and ai are separate **repos** so they can be developed,
+versioned, and deployed independently -- but the backend itself is a single
+deployable FastAPI app, not a set of internal microservices. At this stage
+(a handful of endpoints, one database) splitting the backend further would
+add network calls, service discovery, and deployment overhead without a
+concrete need for it yet. Internally it's organized into clean modules
+(`services/`, `repositories/`, `clients/`) with narrow interfaces between
+them, so any one of them could be extracted into its own service later if
+it genuinely needs independent scaling -- without a rewrite.
 
 ## 1. Start PostgreSQL
 
@@ -89,6 +103,25 @@ env-configurable -- they define the formula itself, not deployment config.
 | POST | `/api/v1/calculate/calorie-target` | Body stats + goal -> target calories & macros |
 | GET | `/api/v1/meals` | List curated meals, filterable by `meal_type` and repeatable `tag` |
 | POST | `/api/v1/meal-plan/generate` | Target calories/macros + preferences -> a full meal plan |
+| GET | `/api/v1/ai/status` | Reports whether the `ai` service is configured and reachable |
+
+## Adding the `ai` service later, without refactoring
+
+`app/clients/` holds an `AIClient` interface (same pattern as
+`MealRepository`): a `NullAIClient` (default, AI disabled) and an
+`HttpAIClient` that calls the external `ai` repo over HTTP. Which one gets
+used is decided purely by the `AI_SERVICE_URL` env var -- set it once the
+`ai` repo is deployed, and the backend switches automatically. No route,
+service, or existing code needs to change.
+
+This was tested, not just designed: with `AI_SERVICE_URL` unset,
+`/api/v1/ai/status` returns `{"configured": false, "reachable": false}`.
+Restarting with `AI_SERVICE_URL=http://some-host` set -- and nothing else
+touched -- flips it to `{"configured": true, "reachable": false}` (false
+because nothing was actually listening there in the test, which the client
+handles gracefully rather than crashing). When real AI-powered endpoints
+are added, they'll depend on `get_ai_client()` the same way `/ai/status`
+already does.
 
 ## Architecture
 
@@ -97,15 +130,17 @@ app/
   api/v1/        FastAPI routers (HTTP layer only -- no business logic)
   schemas/        Pydantic request/response models
   services/       Framework-agnostic business logic (TDEE, macros, meal-plan generation)
-  repositories/   MealRepository interface + Postgres implementation
+  repositories/   MealRepository interface + Postgres implementation (our own data)
+  clients/        AIClient interface + implementations (external services, e.g. the ai repo)
   models/         SQLAlchemy ORM models
   db/             Engine, session, declarative base
   core/           Env-driven settings
 ```
 
-The service layer only talks to `MealRepository` (an interface), never to
-Postgres directly. Adding a third-party nutrition API later means writing a
-new repository implementation -- no changes needed in services or routes.
+The service layer only talks to `MealRepository` and `AIClient` -- both
+interfaces, never concrete implementations directly. Adding a third-party
+nutrition API or the real AI service later means writing a new
+implementation of an existing interface, not restructuring the app.
 
 ## What's been tested end-to-end
 
@@ -123,6 +158,10 @@ new repository implementation -- no changes needed in services or routes.
 
 - User accounts + auth (JWT), so users can save/favorite plans
 - Daily intake logging vs. target
+- Build out `food-coach-ai` for real (LLM coaching, food-photo recognition),
+  then extend `app/clients/http_ai_client.py` to call its actual endpoints
+  and add `/api/v1/ai/...` routes for whatever it exposes -- the seam is
+  already there and tested
 - A second `MealRepository` implementation backed by a third-party
   nutrition API, blended with the curated catalog
 - Smarter meal-plan optimization (e.g. linear programming to hit macros

@@ -28,11 +28,16 @@ def generate_meal_plan_endpoint(
     db: Session = Depends(get_db),
 ) -> MealPlanResponse:
     repo = PostgresMealRepository(db)
+    use_lp = body.optimizer == "lp"
     result = generate_meal_plan(
         repository=repo,
         target_calories=body.target_calories,
+        target_protein_g=body.target_protein_g,
+        target_fat_g=body.target_fat_g,
+        target_carbs_g=body.target_carbs_g,
         meal_count=body.meal_count,
         diet_tags=body.diet_tags,
+        use_lp=use_lp,
     )
     return MealPlanResponse(
         slots=[

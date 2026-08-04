@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.config import settings
@@ -18,11 +20,25 @@ class MealOut(BaseModel):
     diet_tags: list[str]
 
 
+class OptimizerType(str, Enum):
+    greedy = "greedy"
+    lp = "lp"
+
+
 class MealPlanRequest(BaseModel):
     target_calories: float = Field(..., gt=0)
+    # Optional macro targets for LP optimizer. If not provided, LP will
+    # derive protein/fat/carbs targets from defaults in config.
+    target_protein_g: float | None = Field(default=None, gt=0)
+    target_fat_g: float | None = Field(default=None, gt=0)
+    target_carbs_g: float | None = Field(default=None, gt=0)
     meal_count: int = Field(default=settings.default_meal_count, ge=2, le=5)
     diet_tags: list[str] | None = Field(
         default=None, description="e.g. ['high_protein', 'low_fat']"
+    )
+    optimizer: OptimizerType = Field(
+        default=OptimizerType.greedy,
+        description="'greedy' = nearest-calorie per slot (fast, simple). 'lp' = globally optimized via linear programming (better macro matching).",
     )
 
 

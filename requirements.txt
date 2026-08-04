@@ -7,4 +7,5 @@ pydantic
 pydantic-settings
 python-dotenv
 httpx
-pydantic
+ortools    # Linear programming solver for meal optimization
+pyyaml     # For loading LP weights config from YAML

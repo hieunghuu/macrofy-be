@@ -1,0 +1,22 @@
+# LP Optimizer Weights Configuration
+# Controls how the linear programming solver balances macro targets.
+# Higher weight = more important to hit that target accurately.
+#
+# Can be overridden at runtime via:
+#   PUT /api/v1/admin/lp-weights
+#
+# For Kubernetes deployment, mount this file via ConfigMap.
+# For local dev, defaults are loaded from this file.
+
+weights:
+  calories: 0.8
+  protein: 1.0
+  fat: 0.5
+  carbs: 0.5
+
+# Solver settings (optional overrides)
+solver:
+  # Max time to spend solving, in seconds. 0 = unlimited.
+  time_limit_seconds: 30
+  # Return best found solution if time limit hit (vs. returning None)
+  return_best_if_timeout: true

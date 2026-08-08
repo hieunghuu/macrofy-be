@@ -19,7 +19,8 @@ def list_meals(
     db: Session = Depends(get_db),
 ) -> list[MealOut]:
     repo = PostgresMealRepository(db)
-    return repo.list_meals(meal_type=meal_type, diet_tags=tag)
+    meals = repo.list_meals(meal_type=meal_type, diet_tags=tag)
+    return [MealOut.model_validate(m) for m in meals]
 
 
 @router.post("/meal-plan/generate", response_model=MealPlanResponse)

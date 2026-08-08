@@ -9,5 +9,7 @@ venv/
 .DS_Store
 test.py
 remind.md
+memory/
+MEMORY.md
 # Runtime LP weight overrides (set via /api/v1/admin/lp-weights)
 .lp_weights.state.json

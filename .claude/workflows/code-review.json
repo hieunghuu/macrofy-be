@@ -1,0 +1,15 @@
+{
+  "name": "meal-optimizer-review",
+  "description": "Run code review on meal optimizer",
+  "triggers": ["manual"],
+  "agent": {
+    "type": "meal-optimizer-reviewer",
+    "instructions": "Review the meal optimizer implementation for correctness, OR-Tools usage, and edge cases."
+  },
+  "files": [
+    "app/services/lp_meal_optimizer.py",
+    "app/services/lp_weights_service.py",
+    "app/schemas/lp_weights.py",
+    "tests/test_lp_meal_optimizer.py"
+  ]
+}

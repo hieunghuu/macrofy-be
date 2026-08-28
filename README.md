@@ -1,7 +1,8 @@
 # About This Project
 This is a side project built to simulate a production-ready service and improve my DevOps skills. 
 
-The codebase may not always follow the best practices, and there will likely be areas for improvement. 
+The codebase may not always follow the best practices even i'm not hiding that i use Claude to make my works easier (:> why not), and there will likely be areas for improvement. 
+
 If you notice better approaches, cleaner implementations, or architectural improvements, feel free to contribute or open a discussion.
 
 # So why macrofy?
@@ -32,21 +33,27 @@ environment-specific is hardcoded.
 alembic upgrade head
 ```
 
-Creates the `meals` table. After changing a model in `app/models/`:
+Creates the `meals`, `ingredients`, and `meal_ingredients` tables. After changing a model in `app/models/`:
 
 ```bash
 alembic revision --autogenerate -m "describe the change"
 alembic upgrade head
 ```
 
-## 4. Seed the curated meal data
+## 4. Seed the data
 
 ```bash
+# Seed the curated meal data
 python -m seed.seed_meals
+
+# Seed the ingredient database (USDA-sourced nutritional data)
+python -m seed.seed_ingredients
+
+# Link meals to ingredients with quantities
+python -m seed.link_meals_to_ingredients
 ```
 
-Safe to re-run -- clears the table and re-inserts the current data in
-`seed/meals_data.py`.
+Safe to re-run -- scripts clear tables before inserting.
 
 ## 5. Run the API
 
@@ -87,6 +94,11 @@ env-configurable -- they define the formula itself, not deployment config.
 | POST | `/api/v1/calculate/tdee` | Body stats -> BMR + TDEE |
 | POST | `/api/v1/calculate/calorie-target` | Body stats + goal -> target calories & macros |
 | GET | `/api/v1/meals` | List curated meals, filterable by `meal_type` and repeatable `tag` |
+| GET | `/api/v1/ingredients` | List ingredients with optional category filter and search |
+| GET | `/api/v1/ingredients/{id}` | Get full nutritional details for an ingredient |
+| POST | `/api/v1/ingredients` | Create a new ingredient (admin) |
+| PUT | `/api/v1/ingredients/{id}` | Update an ingredient's nutritional data |
+| DELETE | `/api/v1/ingredients/{id}` | Delete an ingredient (fails if used in meals) |
 | POST | `/api/v1/meal-plan/generate` | Target calories/macros + preferences -> a full meal plan |
 | GET | `/api/v1/ai/status` | Reports whether the `ai` service is configured and reachable |
 
@@ -152,3 +164,20 @@ implementation of an existing interface, not restructuring the app.
 - Smarter meal-plan optimization (e.g. linear programming to hit macros
   more precisely instead of nearest-calorie matching)
 - Dockerize the app itself (currently only Postgres is containerized)
+
+--- 
+for meal plan, it should be give user also information about,
+how many gram of  ingredient they should eat
+example:
+```
+    {
+        "name": "Grilled chicken breast with steamed broccoli",
+        "description": "Simple high-protein, low-fat plate with lean chicken and greens.",
+        "calories": 320,
+        "protein_g": 48,
+        "fat_g": 6,
+        "carbs_g": 12,
+        "meal_type": MealType.lunch,
+        "diet_tags": ["high_protein", "low_fat", "gluten_free"],
+    },
+```

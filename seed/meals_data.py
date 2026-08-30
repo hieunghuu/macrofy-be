@@ -87,4 +87,14 @@ MEALS = [
         "meal_type": MealType.snack,
         "diet_tags": ["high_protein", "low_fat", "vegetarian", "gluten_free"],
     },
+    {
+            "name": "Chicken breast boil",
+            "description": "Low-fat cottage",
+            "calories": 160,
+            "protein_g": 22,
+            "fat_g": 2,
+            "carbs_g": 14,
+            "meal_type": MealType.lunch,
+            "diet_tags": ["high_protein", "low_fat", "vegetarian", "gluten_free"],
+        },
 ]

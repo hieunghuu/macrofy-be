@@ -50,6 +50,9 @@ class Settings(BaseSettings):
         default=5.0, validation_alias="AI_SERVICE_TIMEOUT_SECONDS"
     )
 
+    # --- USDA FoodData Central API (for ingredient nutritional data) ---
+    usda_api_key: str = Field(default="", validation_alias="USDA_API_KEY")
+
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",

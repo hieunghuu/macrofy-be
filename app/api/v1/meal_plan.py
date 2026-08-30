@@ -4,10 +4,47 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.meal import MealType
 from app.repositories.postgres_meal_repo import PostgresMealRepository
-from app.schemas.meal import MealOut, MealPlanRequest, MealPlanResponse, MealPlanSlotOut
+from app.schemas.meal import (
+    IngredientCategory,
+    MealIngredientOut,
+    MealOut,
+    MealPlanRequest,
+    MealPlanResponse,
+    MealPlanSlotOut,
+)
 from app.services.meal_plan_generator import generate_meal_plan
 
 router = APIRouter(tags=["meals"])
+
+
+def _build_meal_out(meal) -> MealOut:
+    """Build MealOut with ingredients array including gram quantities and nutrition."""
+    ingredients = []
+    if meal.meal_ingredients:
+        for mi in sorted(meal.meal_ingredients, key=lambda x: x.order_index or 0):
+            if mi.ingredient:
+                nutrition = mi.calculate_nutrition()
+                ingredients.append(MealIngredientOut(
+                    ingredient_name=mi.ingredient.name,
+                    category=mi.ingredient.category,
+                    quantity_g=mi.quantity_g,
+                    calories=nutrition["calories"],
+                    protein_g=nutrition["protein_g"],
+                    fat_g=nutrition["fat_g"],
+                    carbs_g=nutrition["carbs_g"],
+                ))
+    return MealOut(
+        id=meal.id,
+        name=meal.name,
+        description=meal.description,
+        calories=meal.calories,
+        protein_g=meal.protein_g,
+        fat_g=meal.fat_g,
+        carbs_g=meal.carbs_g,
+        meal_type=meal.meal_type,
+        diet_tags=meal.diet_tags,
+        ingredients=ingredients,
+    )
 
 
 @router.get("/meals", response_model=list[MealOut])
@@ -20,7 +57,7 @@ def list_meals(
 ) -> list[MealOut]:
     repo = PostgresMealRepository(db)
     meals = repo.list_meals(meal_type=meal_type, diet_tags=tag)
-    return [MealOut.model_validate(m) for m in meals]
+    return [_build_meal_out(m) for m in meals]
 
 
 @router.post("/meal-plan/generate", response_model=MealPlanResponse)
@@ -45,7 +82,7 @@ def generate_meal_plan_endpoint(
             MealPlanSlotOut(
                 meal_type=s.meal_type,
                 target_calories=s.target_calories,
-                meal=s.meal,
+                meal=_build_meal_out(s.meal) if s.meal else None,
                 relaxed_filters=s.relaxed_filters,
             )
             for s in result.slots
